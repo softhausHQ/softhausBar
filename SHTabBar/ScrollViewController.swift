@@ -55,13 +55,15 @@ open class ScrollViewController: UIViewController {
         self.tabBarView.leftAnchor.constraint(equalTo: self.view.leftAnchor).isActive = true
         self.tabBarView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor).isActive = true
         self.tabBarView.rightAnchor.constraint(equalTo: self.view.rightAnchor).isActive = true
-        self.tabBarView.heightAnchor.constraint(equalToConstant: 80).isActive = true
         self.tabBarView.backgroundColor = .white
-        
-        
-
 
     }
+
+    open override func viewDidAppear(_ animated: Bool) {
+        self.tabBarView.heightAnchor.constraint(equalToConstant: 80 + self.view.safeAreaInsets.bottom).isActive = true
+
+    }
+
     
     func addViews(){
         setUp()
@@ -113,17 +115,6 @@ open class TabBarView: UIView {
             }
         }
     }
-    private(set) lazy var highlighterView: UIView = {
-
-        let frame = CGRect(origin: CGPoint(x: 0, y: 10), size: CGSize(width: 0, height: self.bounds.height - 20))
-        let highlighterView = UIView(frame: frame)
-        highlighterView.layer.cornerRadius = (self.bounds.height - 20) / 2
-        highlighterView.alpha = 0.1
-        self.addSubview(highlighterView)
-        self.sendSubviewToBack(highlighterView)
-        
-        return highlighterView
-    }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -139,13 +130,13 @@ open class TabBarView: UIView {
     
     override open var frame: CGRect {
         didSet {
-            self.stackView.frame = self.bounds
+            self.stackView.frame = CGRect(x: self.bounds.origin.x, y: self.bounds.origin.x, width: self.bounds.width, height: self.bounds.height - self.safeAreaInsets.bottom)
         }
     }
-    
+
     override open var bounds: CGRect {
         didSet {
-            self.stackView.frame = self.bounds
+            self.stackView.frame = CGRect(x: self.bounds.origin.x, y: self.bounds.origin.x, width: self.bounds.width, height: self.bounds.height - self.safeAreaInsets.bottom)
         }
     }
     open override func didMoveToWindow() {
@@ -162,16 +153,14 @@ open class TabBarView: UIView {
     
     open override func layoutSubviews() {
         super.layoutSubviews()
-        
-        moveHighlighterView(toItemAt: selectedSegmentIndex)
+        self.stackView.frame = CGRect(x: self.bounds.origin.x, y: self.bounds.origin.x, width: self.bounds.width, height: self.bounds.height - self.safeAreaInsets.bottom)
     }
     
     func commonInit() {
         self.addSubview(self.stackView)
         self.stackView.distribution = .fillEqually
         self.stackView.alignment = .center
-
-        
+        self.stackView.spacing = 5
     }
     func reloadData(){
         guard let dataSource = dataSource else {
@@ -186,15 +175,21 @@ open class TabBarView: UIView {
             let button = createButton(forIndex: index, withDataSource: dataSource)
             buttons.append(button)
             stackView.addArrangedSubview(button)
-            button.heightAnchor.constraint(equalToConstant: 50).isActive = true
+            stackView.setCustomSpacing(0, after: button)
+            let buttonH = button.heightAnchor.constraint(equalToConstant: 50)
+            buttonH.priority = .defaultHigh
+            buttonH.isActive = true
             button.layer.cornerRadius = 25
             
             let label = createLabel(forIndex: index, withDataSource: dataSource)
             label.text = dataSource.tabSwitcher(self, titleAt: index)
-            label.heightAnchor.constraint(equalToConstant: 50).isActive = true
-
+            let labelH = label.heightAnchor.constraint(equalToConstant: 50)
+            labelH.priority = .defaultHigh
+            labelH.isActive = true
+            label.layer.cornerRadius = 25
             labels.append(label)
             stackView.addArrangedSubview(label)
+
             
         }
     }
@@ -203,8 +198,9 @@ open class TabBarView: UIView {
         let button = UIButton()
         
         button.setImage(dataSource.tabSwitcher(self, iconAt: index), for: .normal)
-        button.setImage(dataSource.tabSwitcher(self, hightlightedIconAt: index).withRenderingMode(.alwaysTemplate), for: .selected)
+        button.setImage(dataSource.tabSwitcher(self, hightlightedIconAt: index), for: .selected)
         button.tintColor = dataSource.tabSwitcher(self, tintColorAt: index)
+        button.layer.maskedCorners = [.layerMinXMinYCorner,.layerMinXMaxYCorner]
         button.addTarget(self, action: #selector(selectButton(_:)), for: .touchUpInside)
         
         return button
@@ -222,52 +218,41 @@ open class TabBarView: UIView {
         label.textAlignment = .left
         label.text = dataSource.tabSwitcher(self, titleAt: index)
         label.textColor = dataSource.tabSwitcher(self, tintColorAt: index)
-//        label.adjustsFontSizeToFitWidth = true
-//        label.layoutSubviews()
+        label.backgroundColor = dataSource.tabSwitcher(self, tintColorAt: index).withAlphaComponent(0.15)
+        label.layer.maskedCorners = [.layerMaxXMaxYCorner,.layerMaxXMinYCorner]
+        label.clipsToBounds = true
+        label.adjustsFontSizeToFitWidth = true
 
         label.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         
         return label
     }
+
     func transition(from fromIndex: Int, to toIndex: Int) {
-            let fromLabel = labels[fromIndex]
-            let fromIcon = buttons[fromIndex]
-            let toLabel = labels[toIndex]
-            let toIcon = buttons[toIndex]
+        let fromLabel = labels[fromIndex]
+        let fromIcon = buttons[fromIndex]
+        let toLabel = labels[toIndex]
+        let toIcon = buttons[toIndex]
         
         let animation = {
             fromLabel.isHidden = true
             fromLabel.alpha = 0
             fromIcon.isSelected = false
+            fromIcon.backgroundColor = .clear
             
             toLabel.isHidden = false
             toLabel.alpha = 1
             toIcon.isSelected = true
+            toIcon.backgroundColor = self.dataSource?.tabSwitcher(self, tintColorAt: toIndex).withAlphaComponent(0.15)
+
             
             self.stackView.layoutIfNeeded()
             self.layoutIfNeeded()
-            self.moveHighlighterView(toItemAt: toIndex)
         }
+
         
-        UIView.animate(
-            withDuration: 0.3,
-            delay: 0,
-            animations: animation,
-            completion: nil
-        )
+        UIView.animate(withDuration: 0.3, delay: 0,options: [.preferredFramesPerSecond60,.curveEaseInOut], animations: animation)
     }
     
-    func moveHighlighterView(toItemAt toIndex: Int) {
-        guard let countItems = dataSource?.numberOfItems(inTabSwitcher: self), countItems > toIndex else {
-            return
-        }
-        
-        let toLabel = labels[toIndex]
-        let toIcon = buttons[toIndex]
-        let point = convert(toIcon.frame.origin, to: self)
-        highlighterView.frame.origin.x = point.x + 10
-        highlighterView.frame.size.width = toLabel.bounds.width + toIcon.bounds.width //(toLabel.frame.origin.x - toIcon.frame.origin.x)
-        highlighterView.backgroundColor = dataSource!.tabSwitcher(self, tintColorAt: toIndex)
-    }
 }
 

@@ -51,13 +51,13 @@ extension ViewController: TabBarViewDataSource{
         case 0:
             return "Home"
         case 1:
-            return "Messages"
+            return "Message"
         case 2:
             return "Mail"
         case 3:
             return "Profile"
         default:
-            return ""
+            return "Home"
         }
     }
     
@@ -79,15 +79,15 @@ extension ViewController: TabBarViewDataSource{
     func tabSwitcher(_ tabSwitcher: TabBarView, hightlightedIconAt index: Int) -> UIImage {
         switch index {
         case 0:
-            return UIImage(named: "1")!
+            return UIImage(named: "1")!.withRenderingMode(.alwaysTemplate)
         case 1:
-            return UIImage(named: "2")!
+            return UIImage(named: "2")!.withRenderingMode(.alwaysTemplate)
         case 2:
-            return UIImage(named: "3")!
+            return UIImage(named: "3")!.withRenderingMode(.alwaysTemplate)
         case 3:
-            return UIImage(named: "4")!
+            return UIImage(named: "4")!.withRenderingMode(.alwaysTemplate)
         default:
-            return UIImage(named: "1")!
+            return UIImage(named: "1")!.withRenderingMode(.alwaysTemplate)
 
         }
     }
@@ -103,7 +103,7 @@ extension ViewController: TabBarViewDataSource{
         case 3:
             return UIColor(red:0.26, green:0.57, blue:0.65, alpha:1.00)
         default:
-            return .black
+            return UIColor(red:0.34, green:0.24, blue:0.69, alpha:1.00)
         }        
     }
     
